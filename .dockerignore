@@ -1,0 +1,16 @@
+# Ignore everything by default, then whitelist what's needed
+*
+
+# Include application source
+!src/
+!scripts/
+!configs/
+!examples/
+
+# Include NetMHCIIpan tarball for extraction in Docker build
+!repo/netMHCIIpan-4.3istatic.Linux.tar.gz
+
+# Exclude Python cache everywhere
+**/__pycache__
+**/*.pyc
+**/*.pyo
