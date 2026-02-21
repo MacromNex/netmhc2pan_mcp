@@ -13,29 +13,45 @@ RUN pip install --no-cache-dir \
     fastmcp loguru click pandas numpy tqdm openpyxl
 RUN pip install --no-cache-dir --ignore-installed fastmcp
 
-# Extract NetMHCIIpan binary distribution
-# The tarball is gitignored but should be provided via:
-# - Local builds: place netMHCIIpan-4.3istatic.Linux.tar.gz in repo/
-# - GitHub Actions: use GitHub Actions cache/artifacts (see .github/workflows/docker-build-netmhc.yml)
+# Download and extract NetMHCIIpan binary distribution
+# Source: http://www.cbs.dtu.dk/services/NetMHCIIpan/
+# License: Free for academic/non-commercial use
+# See: http://www.cbs.dtu.dk/services/NetMHCIIpan/license.php
 RUN mkdir -p repo && \
-    if [ ! -f repo/netMHCIIpan-4.3istatic.Linux.tar.gz ]; then \
-      echo "ERROR: NetMHCIIpan tarball not found at repo/netMHCIIpan-4.3istatic.Linux.tar.gz"; \
-      echo ""; \
-      echo "For LOCAL BUILDS:"; \
-      echo "  1. Download netMHCIIpan-4.3 from http://www.cbs.dtu.dk/services/NetMHCIIpan/"; \
-      echo "  2. Copy: cp netMHCIIpan-4.3istatic.Linux.tar.gz tool-mcps/netmhc2pan_mcp/repo/"; \
-      echo "  3. Re-run Docker build"; \
-      echo ""; \
-      echo "For CI/CD (GitHub Actions):"; \
-      echo "  See .github/workflows/docker-build-netmhc.yml for setup instructions"; \
-      echo ""; \
-      exit 1; \
+    if [ -f repo/netMHCIIpan-4.3istatic.Linux.tar.gz ]; then \
+      echo "Using cached NetMHCIIpan tarball"; \
+      tar -xzf repo/netMHCIIpan-4.3istatic.Linux.tar.gz -C repo/; \
+    else \
+      echo "Downloading NetMHCIIpan from official source..."; \
+      for attempt in 1 2 3; do \
+        echo "Download attempt $attempt/3"; \
+        wget --no-verbose -O repo/netMHCIIpan-4.3istatic.Linux.tar.gz \
+          "http://www.cbs.dtu.dk/services/NetMHCIIpan/netMHCIIpan-4.3istatic.Linux.tar.gz" && \
+          tar -xzf repo/netMHCIIpan-4.3istatic.Linux.tar.gz -C repo/ && \
+          break; \
+        if [ $attempt -lt 3 ]; then \
+          echo "Retry in 5 seconds..."; \
+          sleep 5; \
+        else \
+          echo "ERROR: Failed to download NetMHCIIpan after 3 attempts"; \
+          echo "Please check your internet connection or download manually from:"; \
+          echo "  http://www.cbs.dtu.dk/services/NetMHCIIpan/"; \
+          exit 1; \
+        fi; \
+      done; \
     fi && \
-    tar -xzf repo/netMHCIIpan-4.3istatic.Linux.tar.gz -C repo/ && \
     sed -i 's|setenv\tNMHOME\t.*|setenv\tNMHOME\t/app/repo/netMHCIIpan-4.3|' \
         repo/netMHCIIpan-4.3/netMHCIIpan && \
     chmod +x repo/netMHCIIpan-4.3/netMHCIIpan && \
     chmod +x repo/netMHCIIpan-4.3/Linux_x86_64/bin/*
+
+# ====== LICENSE NOTICE ======
+# NetMHCIIpan is developed by CBS (Center for Biological Sequence Analysis),
+# Technical University of Denmark (DTU).
+# It is free for academic/non-commercial use.
+# For commercial use or license details, visit:
+#   http://www.cbs.dtu.dk/services/NetMHCIIpan/
+# =============================
 
 # Copy application source
 COPY src/ ./src/
