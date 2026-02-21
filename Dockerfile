@@ -13,18 +13,22 @@ RUN pip install --no-cache-dir \
     fastmcp loguru click pandas numpy tqdm openpyxl
 RUN pip install --no-cache-dir --ignore-installed fastmcp
 
-# Copy and extract NetMHCIIpan binary distribution
-# The tarball must be present in repo/ before building
-COPY repo/netMHCIIpan-4.3istatic.Linux.tar.gz /tmp/
+# Extract NetMHCIIpan binary distribution if tarball is present
+# Note: The tarball is gitignored, so it's only available in local builds
+# GitHub Actions and CI/CD builds without the tarball will proceed without NetMHCIIpan
 RUN mkdir -p repo && \
-    tar -xzf /tmp/netMHCIIpan-4.3istatic.Linux.tar.gz -C repo/ && \
-    rm /tmp/netMHCIIpan-4.3istatic.Linux.tar.gz
-
-# Configure NetMHCIIpan: set NMHOME to Docker path
-RUN sed -i 's|setenv\tNMHOME\t.*|setenv\tNMHOME\t/app/repo/netMHCIIpan-4.3|' \
-    repo/netMHCIIpan-4.3/netMHCIIpan && \
-    chmod +x repo/netMHCIIpan-4.3/netMHCIIpan && \
-    chmod +x repo/netMHCIIpan-4.3/Linux_x86_64/bin/*
+    if [ -f repo/netMHCIIpan-4.3istatic.Linux.tar.gz ]; then \
+      echo "Installing NetMHCIIpan from local tarball"; \
+      tar -xzf repo/netMHCIIpan-4.3istatic.Linux.tar.gz -C repo/ && \
+      sed -i 's|setenv\tNMHOME\t.*|setenv\tNMHOME\t/app/repo/netMHCIIpan-4.3|' \
+          repo/netMHCIIpan-4.3/netMHCIIpan && \
+      chmod +x repo/netMHCIIpan-4.3/netMHCIIpan && \
+      chmod +x repo/netMHCIIpan-4.3/Linux_x86_64/bin/*; \
+    else \
+      echo "WARNING: NetMHCIIpan tarball not found in repo/"; \
+      echo "For local builds: place netMHCIIpan-4.3istatic.Linux.tar.gz in repo/"; \
+      echo "For GitHub Actions: configure build artifact or external storage"; \
+    fi
 
 # Copy application source
 COPY src/ ./src/
