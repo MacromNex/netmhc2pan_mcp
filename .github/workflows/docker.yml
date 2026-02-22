@@ -19,20 +19,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - name: Set lowercase image name
         id: image
         run: echo "name=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Verify NetMHCIIpan tarball exists
-        run: |
-          if [ ! -f repo/netMHCIIpan-4.3istatic.Linux.tar.gz ]; then
-            echo "::error::NetMHCIIpan tarball not found at repo/netMHCIIpan-4.3istatic.Linux.tar.gz"
-            echo "The NetMHCIIpan binary must be committed (e.g. via Git LFS) or placed before build."
-            exit 1
-          fi
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
